@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Hello OpenCV.js</title>
+</head>
+<body>
+  <h2>Hello OpenCV.js</h2>
+  <p id="status">OpenCV.js is loading...</p>
+  <div>
+    <div class="inputoutput">
+      <img id="imageSrc" alt="No Image" />
+      <div class="caption">imageSrc <input type="file" id="fileInput" name="file" /></div>
+    </div>
+    <div class="inputoutput">
+      <canvas id="canvasOutput"></canvas>
+      <div class="caption">canvasOutput</div>
+    </div>
+  </div>
+  <script async src="https://docs.opencv.org/master/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+  <script type="text/javascript">
+    // Функция, которая будет вызвана, когда OpenCV.js будет готов
+    function onOpenCvReady() {
+      let imgElement = document.getElementById('imageSrc');
+      let inputElement = document.getElementById('fileInput');
+      inputElement.addEventListener('change', (e) => {
+        imgElement.src = URL.createObjectURL(e.target.files[0]);
+      }, false);
+      imgElement.onload = function () {
+        let mat = cv.imread(imgElement);
+
+        const width = mat.cols;
+        const height = mat.rows;
+
+        console.log(mat);
+        console.log(width);
+        console.log(height);
+
+        let grayMat = new cv.Mat();
+        cv.cvtColor(mat, grayMat, cv.COLOR_RGBA2GRAY);
+
+        cv.imshow('canvasOutput', grayMat);
+
+        // Проверка, является ли изображение квадратом на белом фоне
+        const thresholdValue = 127; // Пороговое значение для бинаризации изображения
+        const maxBinaryValue = 255;
+
+        let binaryMat = new cv.Mat();
+        cv.threshold(grayMat, binaryMat, thresholdValue, maxBinaryValue, cv.THRESH_BINARY);
+
+        const contours = new cv.MatVector();
+        const hierarchy = new cv.Mat();
+
+        cv.findContours(binaryMat, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+        console.log(contours.size());
+
+        // Проверяем каждый контур
+        for (let i = 0; i < contours.size(); i++) {
+          const contour = contours.get(i);
+          // аппроксимация контура
+          const approx = new cv.Mat();
+          cv.approxPolyDP(contour, approx, 0.02 * cv.arcLength(contour, true), true);
+
+          console.log(approx);
+          // Если контур имеет 4 угла, это может быть квадрат
+          if (approx.total === 4) {
+            console.log('Это квадрат');
+            break;
+          }
+        }
+
+        // Освобождаем ресурсы
+        mat.delete();
+        grayMat.delete();
+        binaryMat.delete();
+        contours.delete();
+        hierarchy.delete();
+      };
+      document.getElementById('status').innerHTML = 'OpenCV.js is ready.';
+    }
+  </script>
+</body>
+</html>
